@@ -1,0 +1,92 @@
+/* Web-specific styles for Tripeasy */
+
+/* Base styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'outfit', sans-serif;
+  background-color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Better scrollbars for desktop */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Button and interactive element hover effects */
+button, 
+[role="button"],
+.touchable-highlight {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+button:hover, 
+[role="button"]:hover,
+.touchable-highlight:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+/* Card hover effects */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* Fix for React Native Web components */
+div[role="button"] {
+  cursor: pointer;
+}
+
+/* Web layout helpers */
+.web-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Media queries for responsiveness */
+@media screen and (max-width: 992px) {
+  .web-container {
+    max-width: 100%;
+    padding: 0 24px;
+  }
+}
+
+/* Link styles */
+a {
+  color: #ff6347;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #e55a3d;
+  text-decoration: underline;
+}
+
+/* Image enhancements */
+img {
+  max-width: 100%;
+} 
