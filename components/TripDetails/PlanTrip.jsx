@@ -2,61 +2,38 @@ import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const apiKey = 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH'; // Pexels API key
+
 const fetchActivityImage = async (activity) => {
-  const apiKey = '44938756-d9d562ffdaf712150c470c59e'; // Pixabay API key
   try {
-    // Find the index of "visit the " in the activity string
-    const visitIndex = activity.toLowerCase().indexOf("visit the ");
-    let searchQuery;
+    // Clean up the activity text to create a better search query
+    const searchQuery = activity
+      .split(' ')
+      .slice(0, 3)
+      .join(' ')
+      .replace(/[^\w\s]/gi, '');
 
-    if (visitIndex !== -1) {
-      // If "visit the " is found, take the text after it
-      const afterVisit = activity.slice(visitIndex + 10);
-      // Find the index of "(" if it exists
-      const parenthesisIndex = afterVisit.indexOf("(");
-      if (parenthesisIndex !== -1) {
-        // If "(" is found, take the text before it
-        searchQuery = afterVisit.slice(0, parenthesisIndex).trim();
-      } else {
-        // If no "(", take up to 20 characters
-        searchQuery = afterVisit.slice(0, 20).trim();
-      }
-    } else {
-      // If "visit the " is not found, take the first 20 characters of the activity
-      const parenthesisIndex = activity.indexOf("(");
-      if (parenthesisIndex !== -1 && parenthesisIndex < 20) {
-        searchQuery = activity.slice(0, parenthesisIndex).trim();
-      } else {
-        searchQuery = activity.slice(0, 20).trim();
-      }
-    }
+    if (!searchQuery) return null;
 
-    // Ensure the search query is not empty
-    if (!searchQuery) {
-      searchQuery = "travel"; // fallback search term
-    }
-
-    console.log("Search query:", searchQuery); // Log the search query for debugging
-
-    const response = await axios.get("https://pixabay.com/api/", {
+    const response = await axios.get("https://api.pexels.com/v1/search", {
+      headers: {
+        'Authorization': apiKey
+      },
       params: {
-        key: apiKey,
-        q: searchQuery,
-        image_type: 'photo',
-        per_page: 3,
+        query: searchQuery,
+        per_page: 1
       },
     });
-    if (response.data.hits.length > 0) {
-      return response.data.hits[0].largeImageURL;
-    } else {
-      console.log("No images found for activity:", searchQuery);
-      return null;
-    }
+
+    return response.data.photos && response.data.photos.length > 0 
+      ? response.data.photos[0].src.large 
+      : null;
   } catch (error) {
-    console.error("Error fetching image from Pixabay:", error.response ? error.response.data : error.message);
-    return 'https://imgs.search.brave.com/9Jw4U9sNR-VAYxYlGWRuH-ArazbAyCpSgQ5ndG8sZ64/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93cml0/aW5nZXhlcmNpc2Vz/LmNvLnVrL2ltYWdl/cy9tb2JpbGUvd2F0/ZXJmYWxsLWJveS5q/cGc'; // Replace with an actual default image URL
+    console.error("Error fetching image from Pexels:", error.response ? error.response.data : error.message);
+    return null;
   }
 };
+
 const PlanTrip = ({ details }) => {
   if (!details) {
     return null;

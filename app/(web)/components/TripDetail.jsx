@@ -12,20 +12,21 @@ const getProxiedImageUrl = (url) => {
   return `https://corsproxy.io/?${encodeURIComponent(url)}`;
 };
 
-// Single simple image fetching function - Pixabay only
+// Single simple image fetching function - Pexels only
 const fetchImage = async (locationName) => {
-  const apiKey = '44938756-d9d562ffdaf712150c470c59e'; // Pixabay API key
+  const apiKey = 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH'; // Pexels API key
   try {
-    const response = await axios.get("https://pixabay.com/api/", {
+    const response = await axios.get("https://api.pexels.com/v1/search", {
+      headers: {
+        'Authorization': apiKey
+      },
       params: {
-        key: apiKey,
-        q: locationName,
-        image_type: 'photo',
+        query: locationName,
         per_page: 1
       },
     });
-    return response.data.hits && response.data.hits.length > 0 
-      ? response.data.hits[0].largeImageURL 
+    return response.data.photos && response.data.photos.length > 0 
+      ? response.data.photos[0].src.large 
       : null;
   } catch (error) {
     return null;
@@ -78,7 +79,7 @@ export default function WebTripDetail({ trip }) {
         if (locationInfo.photoUrl) {
           setImageUrl(Platform.OS === 'web' ? getProxiedImageUrl(locationInfo.photoUrl) : locationInfo.photoUrl);
         } else {
-          // If not, try once with Pixabay
+          // If not, try once with Pexels
           const url = await fetchImage(`${locationInfo.name} ${locationInfo.country}`);
           if (url) {
             setImageUrl(Platform.OS === 'web' ? getProxiedImageUrl(url) : url);

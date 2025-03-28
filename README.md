@@ -52,7 +52,7 @@ Available on both mobile and web platforms, Tripeasy helps you discover new dest
 - **Authentication**: Firebase Authentication
 - **Database**: Firebase Firestore
 - **Styling**: React Native StyleSheet
-- **Image API Integration**: Pixabay, Unsplash
+- **Image API Integration**: Pexels, Unsplash
 - **AI Integration**: Gemini API for trip generation
 
 ## Installation
@@ -86,7 +86,7 @@ Available on both mobile and web platforms, Tripeasy helps you discover new dest
 
 4. Set up environment variables:
    - Create a `.env` file in the root directory
-   - Add your API keys (Pixabay, Unsplash, etc.)
+   - Add your API keys (Pexels, Unsplash, etc.)
 
 5. Start the development server:
    ```bash

@@ -8,20 +8,23 @@ import HotelList from '../../components/TripDetails/HotelList';
 import PlanTrip from '../../components/TripDetails/PlanTrip';
 
 const fetchImage = async (locationName) => {
-  const apiKey = '44938756-d9d562ffdaf712150c470c59e'; // Pixabay API key
+  const apiKey = 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH'; // Pexels API key
   try {
     console.log("Fetching image for location:", locationName);
-    const response = await axios.get("https://pixabay.com/api/", {
+    const response = await axios.get("https://api.pexels.com/v1/search", {
+      headers: {
+        'Authorization': apiKey
+      },
       params: {
-        key: apiKey,
-        q: locationName,
-        image_type: 'photo',
+        query: locationName,
+        per_page: 1
       },
     });
-    console.log("Fetched image URL:", response.data.hits[0].largeImageURL);
-    return response.data.hits[0].largeImageURL;
+    const imageUrl = response.data.photos[0]?.src.large;
+    console.log("Fetched image URL:", imageUrl);
+    return imageUrl;
   } catch (error) {
-    console.error("Error fetching image from Pixabay:", error);
+    console.error("Error fetching image from Pexels:", error);
     throw error;
   }
 };

@@ -5,20 +5,24 @@ import axios from 'axios';
 import { useRouter } from 'expo-router';
 
 
-// Function to fetch image URL from Pixabay
-const fetchImageUrl = async (query) => {
-  const apiKey = '44938756-d9d562ffdaf712150c470c59e'; // Pixabay API key
+// Function to fetch image URL from Pexels
+const fetchImage = async (locationName) => {
+  const apiKey = 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH'; // Pexels API key
   try {
-    const response = await axios.get("https://pixabay.com/api/", {
+    const response = await axios.get("https://api.pexels.com/v1/search", {
+      headers: {
+        'Authorization': apiKey
+      },
       params: {
-        key: apiKey,
-        q: query,
-        image_type: 'photo',
+        query: locationName,
+        per_page: 1
       },
     });
-    return response.data.hits[0]?.largeImageURL || null;
+    return response.data.photos && response.data.photos.length > 0 
+      ? response.data.photos[0].src.large 
+      : null;
   } catch (error) {
-    console.error("Error fetching image from Pixabay:", error);
+    console.error("Error fetching image from Pexels:", error);
     return null;
   }
 };
@@ -45,7 +49,7 @@ const UserTripCard = ({ trip }) => {
   useEffect(() => {
     const fetchPhoto = async () => {
       if (tripData?.locationInfo?.name) {
-        const url = await fetchImageUrl(tripData.locationInfo.name.trim());
+        const url = await fetchImage(tripData.locationInfo.name.trim());
         setPhotoUrl(url);
       }
     };

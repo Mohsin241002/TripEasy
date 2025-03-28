@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions } from 'react-native';
+import axios from 'axios';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -7,34 +8,42 @@ const HotelList = ({ hotelList }) => {
   const [hotelImages, setHotelImages] = useState({});
 
   useEffect(() => {
-    // Fetch images for each hotel in hotelList
-    const fetchHotelImages = async () => {
-      const images = {};
+    const loadHotelImages = async () => {
+      if (!hotelList) return;
+
       for (const hotel of hotelList) {
-        const imageUrl = await fetchImageFromPixabay(hotel.hotel_name);
-        images[hotel.hotel_name] = imageUrl;
+        if (!hotel.hotel_image_url) {
+          const imageUrl = await fetchImageFromPexels(hotel.hotel_name);
+          if (imageUrl) {
+            setHotelImages(prev => ({
+              ...prev,
+              [hotel.hotel_name]: imageUrl
+            }));
+          }
+        }
       }
-      setHotelImages(images);
     };
 
-    fetchHotelImages();
+    loadHotelImages();
   }, [hotelList]);
 
-  const fetchImageFromPixabay = async (searchTerm) => {
-    const apiKey = '44938756-d9d562ffdaf712150c470c59e'; // Pixabay API key
-    const apiUrl = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(searchTerm)}`;
-
+  const fetchImageFromPexels = async (searchTerm) => {
+    const apiKey = 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH'; // Pexels API key
     try {
-      const response = await fetch(apiUrl);
-      const data = await response.json();
-
-      if (data.hits && data.hits.length > 0) {
-        return data.hits[0].webformatURL; // Adjust as per Pixabay API response structure
-      } else {
-        throw new Error('No images found');
-      }
+      const response = await axios.get("https://api.pexels.com/v1/search", {
+        headers: {
+          'Authorization': apiKey
+        },
+        params: {
+          query: `${searchTerm} hotel`,
+          per_page: 1
+        },
+      });
+      return response.data.photos && response.data.photos.length > 0 
+        ? response.data.photos[0].src.large 
+        : null;
     } catch (error) {
-      console.error('Error fetching image:', error);
+      console.error("Error fetching image from Pexels:", error);
       return null;
     }
   };
