@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator, ScrollView, TouchableOpacity, Platform, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,16 +6,11 @@ import axios from 'axios';
 import moment from 'moment';
 import WebDashboardLayout from './WebDashboardLayout';
 
-// Single simplified image proxy function for web - needed for CORS
-const getProxiedImageUrl = (url) => {
-  if (!url || Platform.OS !== 'web') return url;
-  return `https://corsproxy.io/?${encodeURIComponent(url)}`;
-};
-
 // Single simple image fetching function - Pexels only
 const fetchImage = async (locationName) => {
-  const apiKey = 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH'; // Pexels API key
+  const apiKey = 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH';
   try {
+    console.log("Fetching image for location:", locationName);
     const response = await axios.get("https://api.pexels.com/v1/search", {
       headers: {
         'Authorization': apiKey
@@ -25,10 +20,47 @@ const fetchImage = async (locationName) => {
         per_page: 1
       },
     });
-    return response.data.photos && response.data.photos.length > 0 
-      ? response.data.photos[0].src.large 
-      : null;
+    const imageUrl = response.data.photos[0]?.src.large;
+    console.log("Fetched image URL:", imageUrl);
+    return imageUrl;
   } catch (error) {
+    console.error("Error fetching image:", error);
+    return null;
+  }
+};
+
+// Activity image fetching function
+const fetchActivityImage = async (activity) => {
+  try {
+    const searchQuery = activity
+      .split(' ')
+      .slice(0, 3)
+      .join(' ')
+      .replace(/[^\w\s]/gi, '')
+      .trim();
+
+    if (!searchQuery) return null;
+
+    console.log("Fetching activity image for:", searchQuery);
+    const response = await axios.get("https://api.pexels.com/v1/search", {
+      headers: {
+        'Authorization': 'imY45DES967sZGy0D3e3wz8XAx6iNXvIzdbzmzDSlQPr5OmZlhNtMedH'
+      },
+      params: {
+        query: searchQuery,
+        per_page: 1,
+        size: 'small'
+      },
+    });
+
+    if (response.data.photos && response.data.photos.length > 0) {
+      const imageUrl = response.data.photos[0].src.medium;
+      console.log("Found image URL:", imageUrl);
+      return imageUrl;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching activity image:", error);
     return null;
   }
 };
@@ -40,10 +72,15 @@ export default function WebTripDetail({ trip }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [placeImages, setPlaceImages] = useState({});
   const [imageLoadAttempted, setImageLoadAttempted] = useState({}); // Track if we've tried loading an image
+  const [activityImages, setActivityImages] = useState({});
+  const [images, setImages] = useState({});
+  const [loadingImages, setLoadingImages] = useState(true);
   const mountedRef = useRef(true);
   
   // Parse trip data
-  const tripData = typeof trip.tripData === 'string' ? JSON.parse(trip.tripData) : trip.tripData;
+  const tripData = useMemo(() => {
+    return typeof trip.tripData === 'string' ? JSON.parse(trip.tripData) : trip.tripData;
+  }, [trip.tripData]);
   
   // Handle AI generated trip plan data
   const tripPlan = trip.tripPlan || null;
@@ -53,49 +90,58 @@ export default function WebTripDetail({ trip }) {
   
   // Handle traveler which can be either a string or an object
   const traveler = tripData.traveler;
-  const travelerDisplay = typeof traveler === 'object' && traveler !== null 
-    ? `${traveler.title} - ${traveler.desc}` 
-    : traveler;
+  const travelerDisplay = useMemo(() => {
+    return typeof traveler === 'object' && traveler !== null 
+      ? `${traveler.title} - ${traveler.desc}` 
+      : traveler;
+  }, [traveler]);
   
   // Handle budget which can be either a string or an object
   const budget = tripData.budget;
-  const budgetDisplay = typeof budget === 'object' && budget !== null
-    ? budget.title
-    : budget;
+  const budgetDisplay = useMemo(() => {
+    return typeof budget === 'object' && budget !== null
+      ? budget.title
+      : budget;
+  }, [budget]);
   
   // Make sure we don't update state after unmounting
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
   }, []);
 
-  // Load header image - one simple call
+  // Simple header image loading
   useEffect(() => {
+    let isMounted = true;
     const loadHeaderImage = async () => {
+      if (!locationInfo) return;
+      
       setLoading(true);
       try {
-        // First check if location has a photo URL in tripData
         if (locationInfo.photoUrl) {
-          setImageUrl(Platform.OS === 'web' ? getProxiedImageUrl(locationInfo.photoUrl) : locationInfo.photoUrl);
+          if (isMounted) setImageUrl(locationInfo.photoUrl);
         } else {
-          // If not, try once with Pexels
           const url = await fetchImage(`${locationInfo.name} ${locationInfo.country}`);
-          if (url) {
-            setImageUrl(Platform.OS === 'web' ? getProxiedImageUrl(url) : url);
+          if (url && isMounted) {
+            setImageUrl(url);
           }
         }
       } catch (error) {
-        // Silent error handling
+        console.error("Error loading header image:", error);
       } finally {
-        if (mountedRef.current) {
+        if (isMounted) {
           setLoading(false);
         }
       }
     };
 
     loadHeaderImage();
-  }, [locationInfo]);
+    return () => {
+      isMounted = false;
+    };
+  }, [locationInfo?.name, locationInfo?.country, locationInfo?.photoUrl]);
 
   // Very simple place image loading - one attempt only
   const loadPlaceImage = async (placeId, placeName) => {
@@ -109,13 +155,58 @@ export default function WebTripDetail({ trip }) {
       if (imageUrl && mountedRef.current) {
         setPlaceImages(prev => ({
           ...prev,
-          [placeId]: Platform.OS === 'web' ? getProxiedImageUrl(imageUrl) : imageUrl
+          [placeId]: imageUrl
         }));
       }
     } catch (error) {
-      // Silent error handling
+      console.error("Error loading place image:", error);
     }
   };
+
+  // Load activity images for itinerary
+  useEffect(() => {
+    if (!tripPlan?.itinerary) {
+      setLoadingImages(false);
+      return;
+    }
+
+    const fetchImages = async () => {
+      try {
+        setLoadingImages(true);
+        const newImages = {};
+        
+        for (const [dayKey, dayDetails] of Object.entries(tripPlan.itinerary)) {
+          if (!mountedRef.current) break;
+
+          const activity = Array.isArray(dayDetails.activity) 
+            ? dayDetails.activity[0] 
+            : dayDetails.activity;
+
+          if (activity) {
+            console.log(`Fetching image for ${dayKey}:`, activity);
+            const imageUrl = await fetchActivityImage(activity);
+            if (imageUrl && mountedRef.current) {
+              console.log(`Setting image for ${dayKey}:`, imageUrl);
+              newImages[dayKey] = imageUrl;
+            }
+          }
+        }
+
+        if (mountedRef.current) {
+          console.log("Final images object:", newImages);
+          setImages(newImages);
+        }
+      } catch (error) {
+        console.error("Error in fetchImages:", error);
+      } finally {
+        if (mountedRef.current) {
+          setLoadingImages(false);
+        }
+      }
+    };
+
+    fetchImages();
+  }, [tripPlan?.itinerary]);
 
   const handleBackPress = () => {
     router.push('./mytrips');
@@ -237,6 +328,9 @@ export default function WebTripDetail({ trip }) {
                   source={{ uri: hotel.hotel_image_url }} 
                   style={styles.hotelImage} 
                   resizeMode="cover"
+                  onError={(e) => {
+                    console.error("Error loading hotel image:", e.nativeEvent.error);
+                  }}
                 />
               ) : (
                 <View style={styles.hotelImagePlaceholder}>
@@ -283,97 +377,108 @@ export default function WebTripDetail({ trip }) {
       );
     }
 
-    // Convert the itinerary object to an array
-    const itineraryArray = Object.entries(tripPlan.itinerary)
-      .map(([key, value]) => ({
-        day: key.replace('day', ''), // Extract day number
-        dayNum: parseInt(key.replace('day', ''), 10), // Convert to number for sorting
-        ...value
-      }))
-      // Sort the array by day number
-      .sort((a, b) => a.dayNum - b.dayNum);
+    const sortedDays = Object.keys(tripPlan.itinerary).sort((a, b) => {
+      const dayA = parseInt(a.replace('day', ''));
+      const dayB = parseInt(b.replace('day', ''));
+      return dayA - dayB;
+    });
 
     return (
       <View style={styles.itineraryContainer}>
-        {itineraryArray.map((day, index) => (
-          <View key={index} style={styles.dayCard}>
-            <View style={styles.dayHeader}>
-              <Text style={styles.dayTitle}>Day {day.day}</Text>
-              <Text style={styles.dayTime}>{day.time}</Text>
-            </View>
-            <Text style={styles.dayActivity}>{day.activity}</Text>
-            
-            {day.places_to_visit && day.places_to_visit.length > 0 && (
-              <View style={styles.placesContainer}>
-                <Text style={styles.placesTitle}>Places to Visit:</Text>
-                {day.places_to_visit.map((place, i) => {
-                  // Create a unique ID for this place
-                  const placeId = `day${day.day}-place${i}`;
-                  
-                  // Super simple image source handling
-                  let imageSource = null;
-                  
-                  if (place.place_image_url) {
-                    // Use existing image (with proxy for web)
-                    imageSource = { uri: Platform.OS === 'web' 
-                      ? getProxiedImageUrl(place.place_image_url) 
-                      : place.place_image_url 
-                    };
-                  } else if (placeImages[placeId]) {
-                    // Use fetched image
-                    imageSource = { uri: placeImages[placeId] };
-                  } else if (!imageLoadAttempted[placeId]) {
-                    // Try to load image once
-                    loadPlaceImage(placeId, place.place_name);
-                  }
+        {sortedDays.map((dayKey) => {
+          const dayDetails = tripPlan.itinerary[dayKey];
+          const activities = Array.isArray(dayDetails.activity) 
+            ? dayDetails.activity 
+            : [dayDetails.activity];
+          const times = Array.isArray(dayDetails.time) 
+            ? dayDetails.time 
+            : [dayDetails.time];
 
-                  return (
-                    <View key={i} style={styles.placeCard}>
-                      <View style={styles.placeImageContainer}>
-                        {imageSource ? (
+          return (
+            <View key={dayKey} style={styles.dayCard}>
+              <View style={styles.dayHeader}>
+                <View style={styles.dayTitleContainer}>
+                  <Text style={styles.dayTitle}>{dayKey.toUpperCase()}</Text>
+                  <Text style={styles.dayTimeHeader}>{times[0]}</Text>
+                </View>
+              </View>
+
+              <View style={styles.dayContent}>
+                <View style={styles.activitySection}>
+                  <View style={styles.activityRow}>
+                    <View style={styles.activityImageSection}>
+                      {loadingImages ? (
+                        <View style={[styles.activityImageContainer, styles.imagePlaceholder]}>
+                          <ActivityIndicator size="large" color="#FF4B4B" />
+                        </View>
+                      ) : images[dayKey] ? (
+                        <View style={styles.activityImageContainer}>
                           <Image 
-                            source={imageSource}
-                            style={styles.placeImage} 
+                            source={{ uri: images[dayKey] }}
+                            style={styles.activityImage}
                             resizeMode="cover"
                           />
-                        ) : (
-                          <View style={styles.placeImagePlaceholder}>
-                            <Ionicons name="image-outline" size={40} color="#CBD5E0" />
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.placeContent}>
-                        <Text style={styles.placeName}>{place.place_name}</Text>
-                        <Text style={styles.placeDetails}>{place.place_details}</Text>
-                        
-                        <View style={styles.placeInfo}>
-                          {place.geo_coordinates && (
-                            <View style={styles.placeInfoItem}>
-                              <Ionicons name="location-outline" size={14} color="#718096" />
-                              <Text style={styles.placeInfoText}>{place.geo_coordinates}</Text>
-                            </View>
-                          )}
-                          {place.ticket_pricing && (
-                            <View style={styles.placeInfoItem}>
-                              <Ionicons name="ticket-outline" size={14} color="#718096" />
-                              <Text style={styles.placeInfoText}>Ticket: {place.ticket_pricing}</Text>
-                            </View>
-                          )}
-                          {place.time_to_travel && (
-                            <View style={styles.placeInfoItem}>
-                              <Ionicons name="time-outline" size={14} color="#718096" />
-                              <Text style={styles.placeInfoText}>Time needed: {place.time_to_travel}</Text>
-                            </View>
-                          )}
                         </View>
-                      </View>
+                      ) : (
+                        <View style={[styles.activityImageContainer, styles.imagePlaceholder]}>
+                          <Ionicons name="image-outline" size={40} color="#CBD5E0" />
+                        </View>
+                      )}
                     </View>
-                  );
-                })}
+
+                    <View style={styles.activityDetails}>
+                      <View style={styles.activitiesList}>
+                        {activities.map((activity, index) => (
+                          <View key={index} style={styles.activityItem}>
+                            <Text style={styles.activityTime}>{times[index]}</Text>
+                            <Text style={styles.activityText}>{activity}</Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {dayDetails.places_to_visit && dayDetails.places_to_visit.length > 0 && (
+                        <View style={styles.placesSection}>
+                          <Text style={styles.placesTitle}>Places to Visit:</Text>
+                          <View style={styles.placesGrid}>
+                            {dayDetails.places_to_visit.map((place, i) => (
+                              <View key={i} style={styles.placeCard}>
+                                <View style={styles.placeContent}>
+                                  <Text style={styles.placeName}>{place.place_name}</Text>
+                                  <Text style={styles.placeDetails}>{place.place_details}</Text>
+                                  
+                                  <View style={styles.placeInfo}>
+                                    {place.geo_coordinates && (
+                                      <View style={styles.placeInfoItem}>
+                                        <Ionicons name="location-outline" size={14} color="#718096" />
+                                        <Text style={styles.placeInfoText}>{place.geo_coordinates}</Text>
+                                      </View>
+                                    )}
+                                    {place.ticket_pricing && (
+                                      <View style={styles.placeInfoItem}>
+                                        <Ionicons name="ticket-outline" size={14} color="#718096" />
+                                        <Text style={styles.placeInfoText}>Ticket: {place.ticket_pricing}</Text>
+                                      </View>
+                                    )}
+                                    {place.time_to_travel && (
+                                      <View style={styles.placeInfoItem}>
+                                        <Ionicons name="time-outline" size={14} color="#718096" />
+                                        <Text style={styles.placeInfoText}>Time needed: {place.time_to_travel}</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                </View>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
               </View>
-            )}
-          </View>
-        ))}
+            </View>
+          );
+        })}
       </View>
     );
   };
@@ -407,6 +512,10 @@ export default function WebTripDetail({ trip }) {
                 source={{ uri: imageUrl }} 
                 style={styles.headerImage} 
                 resizeMode="cover"
+                onError={(e) => {
+                  console.error("Error loading header image:", e.nativeEvent.error);
+                  setImageUrl(null);
+                }}
               />
             ) : (
               <View style={styles.placeholderImage}>
@@ -816,8 +925,8 @@ const styles = StyleSheet.create({
   dayCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
     marginBottom: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -825,101 +934,141 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   dayHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  dayTitleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
   dayTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2D3748',
+  },
+  dayTimeHeader: {
+    fontSize: 14,
+    color: '#718096',
+    fontWeight: '500',
+  },
+  dayContent: {
+    padding: 20,
+  },
+  activitySection: {
+    marginBottom: 24,
+  },
+  activityRow: {
+    flexDirection: 'row',
+    gap: 24,
+    alignItems: 'flex-start',
+  },
+  activityImageSection: {
+    width: '25%',
+    minWidth: 240,
+    maxWidth: 300,
+    alignSelf: 'center',
+  },
+  activityDetails: {
+    flex: 1,
+    paddingTop: 8,
+  },
+  activityImageContainer: {
+    width: '100%',
+    aspectRatio: 3 / 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F7FAFC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  activityImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F7FAFC',
+  },
+  imagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EDF2F7',
+  },
+  activitiesList: {
+    marginTop: 0,
+  },
+  activityItem: {
+    marginBottom: 12,
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  activityTime: {
+    fontSize: 14,
+    color: '#718096',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  activityText: {
+    fontSize: 16,
+    color: '#2D3748',
+    lineHeight: 24,
+  },
+  placesSection: {
+    marginTop: 16,
+  },
+  placesTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2D3748',
-  },
-  dayTime: {
-    fontSize: 14,
-    color: '#718096',
-  },
-  dayActivity: {
-    fontSize: 16,
-    color: '#4A5568',
     marginBottom: 16,
-    lineHeight: 24,
   },
-  placesContainer: {
-    marginTop: 8,
-  },
-  placesTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3748',
-    marginBottom: 12,
+  placesGrid: {
+    gap: 16,
   },
   placeCard: {
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#F8FAFC',
     borderRadius: 8,
-    marginBottom: 12,
     overflow: 'hidden',
-  },
-  placeImageContainer: {
-    width: '100%',
-    height: 200,
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginBottom: 10,
-    backgroundColor: '#ddd',
-  },
-  placeImage: {
-    width: '100%',
-    height: '100%',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   placeContent: {
-    padding: 12,
+    padding: 16,
   },
   placeName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2D3748',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   placeDetails: {
     fontSize: 14,
     color: '#4A5568',
-    marginBottom: 8,
+    marginBottom: 12,
     lineHeight: 20,
   },
   placeInfo: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 8,
   },
   placeInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    marginBottom: 4,
+    backgroundColor: '#EDF2F7',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
   },
   placeInfoText: {
     fontSize: 12,
     color: '#718096',
     marginLeft: 4,
-  },
-  placeImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageLoadingText: {
-    fontSize: 14,
-    color: '#718096',
-    marginTop: 8,
-  },
-  noImageText: {
-    fontSize: 14,
-    color: '#718096',
-    marginTop: 8,
   },
 }); 

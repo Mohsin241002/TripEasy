@@ -128,37 +128,42 @@ export default function WebCreateTrip() {
   const auth = getAuth();
   const db = getFirestore();
   
-  // Step 1: Destination selection
+  // Step 1: Starting location and Destination selection
   // Step 2: Date selection
   // Step 3: Traveler selection 
   // Step 4: Budget selection
   const [step, setStep] = useState(1);
+  const [startingDestination, setStartingDestination] = useState('');
   const [destination, setDestination] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [currentSearchFor, setCurrentSearchFor] = useState('starting'); // 'starting' or 'destination'
+  const [selectedStartingLocation, setSelectedStartingLocation] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   const [selectedBudget, setSelectedBudget] = useState(null);
   const [selectedTraveler, setSelectedTraveler] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [startingLocationImage, setStartingLocationImage] = useState(null);
   const [locationImage, setLocationImage] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [generatingTrip, setGeneratingTrip] = useState(false);
 
   const MAPTILER_API_KEY = "uCBXEjePDis0WAcvUmjc"; // Using the same API key as the mobile version
 
-  const searchPlaces = async () => {
-    if (destination.trim().length < 2) return;
+  const searchPlaces = async (searchText, searchFor) => {
+    if (searchText.trim().length < 2) return;
     
     setSearchLoading(true);
     try {
       const response = await fetch(
-        `https://api.maptiler.com/geocoding/${encodeURIComponent(destination)}.json?key=${MAPTILER_API_KEY}`
+        `https://api.maptiler.com/geocoding/${encodeURIComponent(searchText)}.json?key=${MAPTILER_API_KEY}`
       );
       const data = await response.json();
       
       if (data.features && data.features.length > 0) {
         setSearchResults(data.features);
+        setCurrentSearchFor(searchFor);
       } else {
         setSearchResults([]);
       }
@@ -181,16 +186,29 @@ export default function WebCreateTrip() {
       country: place.context?.find(c => c.id.startsWith('country'))?.text || '',
     };
     
-    setSelectedLocation(location);
-    setSearchResults([]);
-    setDestination(place.place_name);
-    
-    try {
-      const imageUrl = await fetchImage(`${place.place_name} travel`);
-      setLocationImage(imageUrl);
-    } catch (error) {
-      console.error("Error fetching location image:", error);
+    if (currentSearchFor === 'starting') {
+      setSelectedStartingLocation(location);
+      setStartingDestination(place.place_name);
+      
+      try {
+        const imageUrl = await fetchImage(`${place.place_name} travel`);
+        setStartingLocationImage(imageUrl);
+      } catch (error) {
+        console.error("Error fetching location image:", error);
+      }
+    } else {
+      setSelectedLocation(location);
+      setDestination(place.place_name);
+      
+      try {
+        const imageUrl = await fetchImage(`${place.place_name} travel`);
+        setLocationImage(imageUrl);
+      } catch (error) {
+        console.error("Error fetching location image:", error);
+      }
     }
+    
+    setSearchResults([]);
   };
 
   const handleStartDateChange = (newDate) => {
@@ -217,7 +235,7 @@ export default function WebCreateTrip() {
   const validateStep = (currentStep) => {
     switch (currentStep) {
       case 1:
-        return selectedLocation !== null;
+        return selectedStartingLocation !== null && selectedLocation !== null;
       case 2:
         return startDate && endDate && startDate < endDate;
       case 3:
@@ -257,6 +275,7 @@ export default function WebCreateTrip() {
     const totalNights = totalDays - 1;
     
     return AI_PROMPT
+      .replace('{startingLocation}', tripData.startingLocationInfo.name)
       .replace('{location}', tripData.locationInfo.name)
       .replace('{totalDays}', totalDays)
       .replace('{totalNight}', totalNights)
@@ -309,6 +328,16 @@ export default function WebCreateTrip() {
 
     try {
       // Format the location info to match the mobile version format
+      const startingLocationObj = {
+        name: selectedStartingLocation.name,
+        coordinates: {
+          lat: selectedStartingLocation.location.latitude,
+          lng: selectedStartingLocation.location.longitude,
+        },
+        country: selectedStartingLocation.country || '',
+        photoUrl: startingLocationImage || null,
+      };
+      
       const locationObj = {
         name: selectedLocation.name,
         coordinates: {
@@ -322,6 +351,7 @@ export default function WebCreateTrip() {
       const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
 
       const tripData = {
+        startingLocationInfo: startingLocationObj,
         locationInfo: locationObj,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -368,88 +398,104 @@ export default function WebCreateTrip() {
     }
   };
 
-  // Step 1: Destination Search
+  // Step 1: Starting location and Destination Selection
   const renderStep1 = () => {
     return (
       <View style={styles.stepContainer}>
-        <Text style={styles.stepTitle}>Where do you want to go?</Text>
+        <Text style={styles.stepTitle}>Where are you starting from?</Text>
         <Text style={styles.stepDescription}>
-          Search for a destination to start planning your trip
+          Search for your starting location
         </Text>
-
+        
         <View style={styles.searchContainer}>
           <TextInput
+            placeholder="Search starting location..."
+            value={startingDestination}
+            onChange={(e) => setStartingDestination(e.target.value)}
             style={styles.searchInput}
-            placeholder="Search destinations..."
-            value={destination}
-            onChangeText={(text) => {
-              setDestination(text);
-              if (text.length > 2) {
-                searchPlaces();
-              }
-            }}
           />
-          <TouchableOpacity style={styles.searchButton} onPress={searchPlaces}>
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => searchPlaces(startingDestination, 'starting')}
+            disabled={searchLoading}
+          >
             {searchLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Ionicons name="search" size={24} color="#FFFFFF" />
+              <Ionicons name="search" size={20} color="#fff" />
             )}
           </TouchableOpacity>
         </View>
+        
+        {selectedStartingLocation && (
+          <View style={styles.selectedLocationContainer}>
+            <Text style={styles.selectedLocationTitle}>Starting Location:</Text>
+            <Text style={styles.selectedLocationName}>{selectedStartingLocation.name}</Text>
+            {startingLocationImage && (
+              <Image
+                source={{ uri: startingLocationImage }}
+                style={styles.locationImage}
+              />
+            )}
+          </View>
+        )}
+        
+        {selectedStartingLocation && (
+          <>
+            <Text style={[styles.stepTitle, {marginTop: 20}]}>Where do you want to go?</Text>
+            <Text style={styles.stepDescription}>
+              Search for a destination to start planning your trip
+            </Text>
+            
+            <View style={styles.searchContainer}>
+              <TextInput
+                placeholder="Search destination..."
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                style={styles.searchInput}
+              />
+              <TouchableOpacity
+                style={styles.searchButton}
+                onPress={() => searchPlaces(destination, 'destination')}
+                disabled={searchLoading}
+              >
+                {searchLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="search" size={20} color="#fff" />
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            {selectedLocation && (
+              <View style={styles.selectedLocationContainer}>
+                <Text style={styles.selectedLocationTitle}>Destination:</Text>
+                <Text style={styles.selectedLocationName}>{selectedLocation.name}</Text>
+                {locationImage && (
+                  <Image
+                    source={{ uri: locationImage }}
+                    style={styles.locationImage}
+                  />
+                )}
+              </View>
+            )}
+          </>
+        )}
 
         {searchResults.length > 0 && (
-          <View style={styles.resultsContainer}>
+          <View style={styles.searchResultsContainer}>
             <FlatList
               data={searchResults}
-              keyExtractor={(item, index) => item.id || `place-${index}`}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.resultItem}
+                  style={styles.searchResultItem}
                   onPress={() => handleLocationSelect(item)}
                 >
-                  <View style={styles.resultContent}>
-                    <Text style={styles.resultName}>{item.place_name}</Text>
-                    <Text style={styles.resultDescription} numberOfLines={2}>
-                      {item.place_name}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={24} color="#A0AEC0" />
+                  <Text style={styles.searchResultText}>{item.place_name}</Text>
                 </TouchableOpacity>
               )}
-              style={styles.resultsList}
             />
-          </View>
-        )}
-
-        {searchResults.length === 0 && destination.trim().length > 0 && !searchLoading && (
-          <View style={styles.noResultsContainer}>
-            <Ionicons name="search-outline" size={48} color="#CBD5E0" />
-            <Text style={styles.noResultsText}>No destinations found</Text>
-            <Text style={styles.noResultsSubtext}>Try another search term</Text>
-          </View>
-        )}
-
-        {selectedLocation && (
-          <View style={styles.selectedLocationContainer}>
-            <Text style={styles.selectedLocationTitle}>Selected Destination</Text>
-            <View style={styles.selectedLocationCard}>
-              {locationImage ? (
-                <Image 
-                  source={{ uri: locationImage }} 
-                  style={styles.locationImage} 
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.locationImagePlaceholder}>
-                  <Ionicons name="image-outline" size={48} color="#CBD5E0" />
-                </View>
-              )}
-              <View style={styles.locationInfo}>
-                <Text style={styles.locationName}>{selectedLocation.name}</Text>
-                <Text style={styles.locationCountry}>{selectedLocation.country}</Text>
-              </View>
-            </View>
           </View>
         )}
       </View>
@@ -754,66 +800,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
-  resultsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    maxHeight: 300,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  resultsList: {
-    width: '100%',
-  },
-  resultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  resultContent: {
-    flex: 1,
-  },
-  resultName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3748',
-    marginBottom: 4,
-  },
-  resultCountry: {
-    fontSize: 14,
-    color: '#718096',
-    marginBottom: 4,
-  },
-  resultDescription: {
-    fontSize: 14,
-    color: '#A0AEC0',
-  },
-  noResultsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  noResultsText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3748',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  noResultsSubtext: {
-    fontSize: 14,
-    color: '#718096',
-    textAlign: 'center',
-  },
   selectedLocationContainer: {
     marginTop: 20,
     padding: 16,
@@ -828,36 +814,14 @@ const styles = StyleSheet.create({
     color: '#2D3748',
     marginBottom: 12,
   },
-  selectedLocationCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  selectedLocationName: {
+    fontSize: 16,
+    color: '#718096',
   },
   locationImage: {
     width: 100,
     height: 80,
     borderRadius: 8,
-  },
-  locationImagePlaceholder: {
-    width: 100,
-    height: 80,
-    backgroundColor: '#EDF2F7',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  locationInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  locationName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3748',
-    marginBottom: 4,
-  },
-  locationCountry: {
-    fontSize: 16,
-    color: '#718096',
   },
   imageContainer: {
     height: 200,
@@ -1021,5 +985,26 @@ const styles = StyleSheet.create({
     color: '#808080',
     fontSize: 16,
     textAlign: 'center',
+  },
+  searchResultsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    maxHeight: 300,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  searchResultText: {
+    fontSize: 16,
+    color: '#2D3748',
   },
 }); 

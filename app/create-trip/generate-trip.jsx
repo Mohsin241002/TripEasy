@@ -16,7 +16,8 @@ export default function GenerateTrip() {
     },[])
     const GenerateAiTrip =async ()=>{
         setLoading(true);
-        const FINAL_PROMPT=AI_PROMPT.replace('{location}',tripData?.locationInfo?.name)
+        const FINAL_PROMPT=AI_PROMPT.replace('{startingLocation}',tripData?.startingLocationInfo?.name)
+        .replace('{location}',tripData?.locationInfo?.name)
         .replace('{totalDays}',tripData.totalNoOfDays)
         .replace('{totalNight}',tripData.totalNoOfDays-1)
         .replace('{traveler}',tripData.traveler?.title)
