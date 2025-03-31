@@ -6,6 +6,8 @@ import { chatSession } from '../../configs/AiModal';
 import { useRouter } from 'expo-router';
 import {auth,db} from './../../configs/firebaseConfig'
 import { doc, setDoc } from 'firebase/firestore';
+import moment from 'moment';
+
 export default function GenerateTrip() {
     const { tripData, setTripData } = useContext(CreateTripContext);
     const [loading,setLoading] = useState(false);
@@ -18,6 +20,8 @@ export default function GenerateTrip() {
         setLoading(true);
         const FINAL_PROMPT=AI_PROMPT.replace('{startingLocation}',tripData?.startingLocationInfo?.name)
         .replace('{location}',tripData?.locationInfo?.name)
+        .replace('{startDate}', moment(tripData.startDate).format('MMM D, YYYY'))
+        .replace('{endDate}', moment(tripData.endDate).format('MMM D, YYYY'))
         .replace('{totalDays}',tripData.totalNoOfDays)
         .replace('{totalNight}',tripData.totalNoOfDays-1)
         .replace('{traveler}',tripData.traveler?.title)

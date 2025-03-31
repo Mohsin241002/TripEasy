@@ -7,6 +7,7 @@ import { collection, addDoc, getFirestore, doc, setDoc } from 'firebase/firestor
 import { getAuth } from 'firebase/auth';
 import WebDashboardLayout from './WebDashboardLayout';
 import { SelectBudgetOptions, SelectTravelersList, AI_PROMPT } from '../../../constants/Options';
+import moment from 'moment';
 
 // Import Gemini API configuration
 import { chatSession } from '../../../configs/AiModal';
@@ -277,6 +278,8 @@ export default function WebCreateTrip() {
     return AI_PROMPT
       .replace('{startingLocation}', tripData.startingLocationInfo.name)
       .replace('{location}', tripData.locationInfo.name)
+      .replace('{startDate}', moment(tripData.startDate).format('MMM D, YYYY'))
+      .replace('{endDate}', moment(tripData.endDate).format('MMM D, YYYY'))
       .replace('{totalDays}', totalDays)
       .replace('{totalNight}', totalNights)
       .replace('{totalDays}', totalDays)  // Replace again for the second occurrence
