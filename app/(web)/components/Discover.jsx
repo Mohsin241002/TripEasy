@@ -136,10 +136,14 @@ export default function WebDiscover() {
   };
 
   const handlePlacePress = (place) => {
-    // Navigate to create trip with pre-filled destination
+    // Navigate to location details page
     router.push({
-      pathname: '../web/create-trip',
-      params: { destination: place.name, country: place.country }
+      pathname: '../(web)/location-details',
+      params: { 
+        locationName: place.name, 
+        country: place.country,
+        imageUrl: place.imageUrl
+      }
     });
   };
 
@@ -169,7 +173,7 @@ export default function WebDiscover() {
           style={styles.exploreButton}
           onPress={() => handlePlacePress(item)}
         >
-          <Text style={styles.exploreButtonText}>Explore</Text>
+          <Text style={styles.exploreButtonText}>View Details</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
