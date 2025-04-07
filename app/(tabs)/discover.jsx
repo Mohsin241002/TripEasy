@@ -204,14 +204,14 @@ const Discover = () => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color="#FF5A5F" />
         <Text style={styles.loadingText}>Discovering amazing places...</Text>
       </View>
     );
   }
 
   return (
-    <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Discover</Text>
         <Text style={styles.headerSubtitle}>Find your next adventure</Text>
@@ -275,19 +275,20 @@ const Discover = () => {
           </View>
         )}
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4c669f',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 16,
@@ -301,11 +302,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FF5A5F',
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#E0E0E0',
+    color: '#FF5A5F',
     marginTop: 5,
   },
   searchContainer: {
@@ -317,22 +318,22 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: 50,
-    borderColor: '#fff',
+    borderColor: '#FF5A5F',
     borderWidth: 1,
     borderRadius: 25,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    color: '#fff',
+    backgroundColor: 'rgba(255, 90, 95, 0.1)',
+    color: '#2D3748',
     fontSize: 16,
   },
   searchButton: {
-    marginLeft: 10,
-    width: 50,
-    height: 50,
-    backgroundColor: '#6C63FF',
-    borderRadius: 25,
-    justifyContent: 'center',
+    backgroundColor: '#FF5A5F',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
   },
   cardsContainer: {
     flexDirection: 'row',
@@ -395,6 +396,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,
+  },
+  placeCardButton: {
+    backgroundColor: '#FF5A5F',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categorySelected: {
+    backgroundColor: '#FF5A5F',
+  },
+  categoryTextSelected: {
+    color: 'white',
   },
 });
 

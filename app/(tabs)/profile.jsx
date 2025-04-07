@@ -94,7 +94,7 @@ const Profile = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color="#FF5A5F" />
       </View>
     );
   }
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#FFFFFF',
   },
   notSignedInContainer: {
     flex: 1,
@@ -246,14 +246,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   signInButton: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    backgroundColor: '#FF5A5F',
     borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    width: 200,
   },
   signInButtonText: {
-    color: '#FFFFFF',
-    fontFamily: 'outfit-medium',
+    color: 'white',
+    fontFamily: 'outfit-bold',
     fontSize: 16,
   },
   title: {
@@ -304,10 +307,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   editNameText: {
-    fontFamily: 'outfit',
+    color: '#FF5A5F',
     fontSize: 14,
-    color: '#718096',
     marginLeft: 4,
+    fontFamily: 'outfit-medium',
   },
   editNameContainer: {
     marginBottom: 8,
@@ -334,12 +337,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#EDF2F7',
   },
   saveButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF5A5F',
+    marginRight: 8,
   },
   editButtonText: {
-    fontFamily: 'outfit-medium',
+    color: 'white',
     fontSize: 14,
-    color: '#4A5568',
+    fontFamily: 'outfit-medium',
   },
   actionsCard: {
     backgroundColor: '#FFFFFF',
@@ -389,7 +393,7 @@ const styles = StyleSheet.create({
     color: '#718096',
   },
   signOutText: {
-    color: '#E53E3E',
+    color: '#FF5A5F',
   },
   aboutCard: {
     backgroundColor: '#FFFFFF',

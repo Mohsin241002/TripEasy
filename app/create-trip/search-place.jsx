@@ -186,7 +186,7 @@ export default function SearchPlace() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4C669F',
+    backgroundColor: '#FF5A5F',
   },
   header: {
     paddingTop: StatusBar.currentHeight || 44,
@@ -309,5 +309,19 @@ const styles = StyleSheet.create({
     fontFamily: 'outfit',
     fontSize: 16,
     color: '#718096',
-  }
+  },
+  searchButton: {
+    backgroundColor: '#FF5A5F',
+    paddingVertical: 15,
+    paddingHorizontal: 50,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  placeItemButton: {
+    backgroundColor: '#FF5A5F',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginLeft: 'auto',
+  },
 });

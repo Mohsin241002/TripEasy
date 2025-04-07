@@ -92,7 +92,7 @@ export default function SelectTraveler() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4C669F',
+    backgroundColor: '#FF5A5F',
   },
   header: {
     paddingTop: StatusBar.currentHeight || 44,
@@ -152,12 +152,12 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   continueButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF5A5F',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginTop: 24,
   },
   buttonDisabled: {
     backgroundColor: '#A0AEC0',

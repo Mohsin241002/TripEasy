@@ -129,7 +129,7 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4C669F',
+    backgroundColor: '#FF5A5F',
   },
   header: {
     paddingTop: StatusBar.currentHeight || 44,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   signInButton: {
-    backgroundColor: '#FF4B4B',
+    backgroundColor: '#FF5A5F',
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontFamily: 'outfit-bold',
-    color: '#4C669F',
+    color: '#FF5A5F',
     fontSize: 14,
   },
 });

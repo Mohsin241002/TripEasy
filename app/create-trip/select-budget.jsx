@@ -102,7 +102,7 @@ export default function SelectBudget() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4C669F',
+    backgroundColor: '#FF5A5F',
   },
   header: {
     paddingTop: StatusBar.currentHeight || 44,
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   continueButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF5A5F',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -176,5 +176,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontFamily: 'outfit-bold',
     fontSize: 16,
+  },
+  nextButton: {
+    backgroundColor: '#FF5A5F',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

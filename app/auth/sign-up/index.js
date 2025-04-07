@@ -161,7 +161,7 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4C669F',
+    backgroundColor: '#FF5A5F',
   },
   content: {
     flexGrow: 1,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   createAccountButton: {
-    backgroundColor: '#FF4B4B',
+    backgroundColor: '#FF5A5F',
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontFamily: 'outfit-bold',
-    color: '#4C669F',
+    color: '#FF5A5F',
     fontSize: 14,
   },
 });

@@ -106,7 +106,7 @@ export default function LocationDetails() {
   if (loading || isRefreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color="#FF5A5F" />
         <Text style={styles.loadingText}>
           {isRefreshing ? 'Refreshing data...' : `Loading information about ${locationName || 'this location'}...`}
         </Text>
@@ -131,7 +131,7 @@ export default function LocationDetails() {
   if (error || !locationDetails) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="cloud-offline-outline" size={70} color="#FF4B4B" />
+        <Ionicons name="cloud-offline-outline" size={70} color="#FF5A5F" />
         <Text style={styles.errorTitle}>AI Content Unavailable</Text>
         <Text style={styles.errorText}>
           {error || `We couldn't generate information about ${locationName}. This may be due to API limits or connectivity issues.`}
@@ -150,7 +150,7 @@ export default function LocationDetails() {
             style={styles.backButton} 
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={18} color="#4F46E5" />
+            <Ionicons name="arrow-back" size={18} color="#FF5A5F" />
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -359,19 +359,20 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   backButtonText: {
+    color: '#FF5A5F',
+    marginLeft: 4,
+    fontFamily: 'outfit-medium',
     fontSize: 16,
-    color: '#4F46E5',
-    marginLeft: 8,
   },
   refreshErrorButton: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    backgroundColor: '#FF5A5F',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    width: '100%',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   refreshErrorText: {
     color: '#FFFFFF',
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
     color: '#2C5282',
   },
   planTripButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF5A5F',
     paddingVertical: 16,
     borderRadius: 10,
     alignItems: 'center',

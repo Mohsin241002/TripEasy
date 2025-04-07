@@ -177,17 +177,17 @@ export default function MyTrip() {
       <View style={styles.header}>
         <Text style={styles.title}>My Trips</Text>
         <TouchableOpacity 
-          style={styles.addButton}
-          onPress={handleAddNewTrip}
+          style={styles.createTripButton}
+          onPress={() => router.push('/create-trip/search-place')}
         >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>New Trip</Text>
+          <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
+          <Text style={styles.createTripButtonText}>Create New Trip</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color="#FF5A5F" />
           <Text style={styles.loadingText}>Loading your trips...</Text>
         </View>
       ) : userTrips.length === 0 ? (
@@ -220,7 +220,7 @@ export default function MyTrip() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#FFFFFF',
     padding: 20,
     paddingTop: 60,
   },
@@ -235,15 +235,17 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#2D3748',
   },
-  addButton: {
+  createTripButton: {
+    backgroundColor: '#FF5A5F',
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4F46E5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 5,
   },
-  addButtonText: {
+  createTripButtonText: {
     fontFamily: 'outfit-medium',
     color: '#FFFFFF',
     fontSize: 14,
@@ -397,5 +399,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#E53E3E',
     marginLeft: 8,
+  },
+  viewDetailsButton: {
+    backgroundColor: '#FF5A5F',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
