@@ -4,6 +4,7 @@ import {CreateTripContext} from '../context/CreateTripContext'
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import ResponsiveLayout from '../components/ResponsiveLayout';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Function to load web-specific CSS
 const loadWebStyles = () => {
@@ -36,19 +37,22 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <CreateTripContext.Provider value={{tripData, setTripData}}>
-      <ResponsiveLayout>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="auth" />
-          <Stack.Screen name="auth/sign-in" />
-          <Stack.Screen name="auth/sign-up" />
-          <Stack.Screen name="create-trip" />
-          <Stack.Screen name="trip-detail" />
-          <Stack.Screen name="mytrip" />
-        </Stack>
-      </ResponsiveLayout>
-    </CreateTripContext.Provider>
+    <SafeAreaProvider>
+      <CreateTripContext.Provider value={{tripData, setTripData}}>
+        <ResponsiveLayout>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="auth" />
+            <Stack.Screen name="auth/sign-in" />
+            <Stack.Screen name="auth/sign-up" />
+            <Stack.Screen name="create-trip" />
+            <Stack.Screen name="trip-detail" />
+            <Stack.Screen name="mytrip" />
+            <Stack.Screen name="location-details" options={{ presentation: 'modal' }} />
+          </Stack>
+        </ResponsiveLayout>
+      </CreateTripContext.Provider>
+    </SafeAreaProvider>
   );
 }

@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import WebDashboardLayout from './WebDashboardLayout';
+import { getLocationDetails } from '../../../configs/locationDetailsAI';
 
 const LocationDetails = ({ route, navigation, onBack, onRefresh }) => {
-  const { location, details, loading, error } = route?.params || {};
+  const { location, details, loading } = route?.params || {};
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [displayError, setDisplayError] = React.useState(null);
   
   const handleRefresh = async () => {
     if (onRefresh && location) {
@@ -14,9 +16,38 @@ const LocationDetails = ({ route, navigation, onBack, onRefresh }) => {
         await onRefresh();
       } catch (error) {
         console.error("Error refreshing data:", error);
+        setDisplayError("Failed to refresh data. Please try again later.");
+        Alert.alert(
+          "Error Refreshing Data",
+          "There was a problem getting fresh data. Please try again later."
+        );
       } finally {
         setIsRefreshing(false);
       }
+    }
+  };
+  
+  // Function to test API directly
+  const testApiDirectly = async () => {
+    if (!location) return;
+    
+    setIsRefreshing(true);
+    try {
+      console.log("Testing API directly for:", location.name, location.country);
+      const result = await getLocationDetails(location.name, location.country);
+      console.log("Direct API test result:", result);
+      Alert.alert(
+        "API Test Result",
+        result ? "API call successful! Check console for details." : "API call returned no data."
+      );
+    } catch (error) {
+      console.error("Direct API test error:", error);
+      Alert.alert(
+        "API Test Error",
+        `Error: ${error.message}`
+      );
+    } finally {
+      setIsRefreshing(false);
     }
   };
   
@@ -34,13 +65,13 @@ const LocationDetails = ({ route, navigation, onBack, onRefresh }) => {
     );
   }
   
-  if (error || !details) {
+  if (!details || details.error) {
     return (
       <WebDashboardLayout title="Location Details">
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={50} color="#DC2626" />
           <Text style={styles.errorTitle}>Unable to load location details</Text>
-          <Text style={styles.errorText}>{error || "Something went wrong. Please try again."}</Text>
+          <Text style={styles.errorText}>{displayError || details?.message || "Something went wrong. Please try again."}</Text>
           <View style={styles.errorButtons}>
             <TouchableOpacity style={styles.backButton} onPress={onBack}>
               <Text style={styles.backButtonText}>Go Back</Text>
@@ -53,6 +84,19 @@ const LocationDetails = ({ route, navigation, onBack, onRefresh }) => {
               <Text style={styles.refreshErrorText}>Try Again</Text>
             </TouchableOpacity>
           </View>
+          
+          {/* Debug button for direct API testing */}
+          <TouchableOpacity 
+            style={styles.apiTestButton}
+            onPress={testApiDirectly}
+          >
+            <Ionicons name="code-working" size={18} color="#FFFFFF" />
+            <Text style={styles.apiTestButtonText}>Test API Directly</Text>
+          </TouchableOpacity>
+          
+          <Text style={styles.debugNote}>
+            Error details have been logged to the console.
+          </Text>
         </View>
       </WebDashboardLayout>
     );
@@ -488,6 +532,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  apiTestButton: {
+    backgroundColor: '#64748B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  apiTestButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  debugNote: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 12,
+    textAlign: 'center',
   },
 });
 

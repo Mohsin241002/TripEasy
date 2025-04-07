@@ -1,9 +1,8 @@
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ToastAndroid, AsyncStorage, Platform } from 'react-native'; // Import AsyncStorage
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, StatusBar, Alert, Platform } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { useNavigation, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { signInWithEmailAndPassword,getAuth } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './../../../configs/firebaseConfig';
 import WebSignIn from '../../components/web/SignIn';
 
@@ -15,63 +14,79 @@ export default function SignIn() {
 
   const navigation = useNavigation();
   const router = useRouter();
-  const [email,setEmail] = useState();
-  const [password,setPassword] = useState();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
     navigation.setOptions({
       headerShown: false
     });
   }, []);
 
-  const onSignIn=()=>{
-    if(!email && !password){
-      ToastAndroid.show("Please enter Email and Password",ToastAndroid.LONG);
+  const onSignIn = async () => {
+    if (!email || !password) {
+      setError('Please enter both email and password');
       return;
     }
-    signInWithEmailAndPassword(auth, email, password)
-  .then((userCredential) => {
-    // Signed in 
-    const user = userCredential.user;
-    router.replace('/mytrip');
-    console.log(user);
 
-    // ...
-  })
-  .catch((error) => {
-    const errorCode = error.code;
-    const errorMessage = error.message;
-    console.log(errorMessage,errorCode);
-    if(errorCode=='auth/invalid-credential'){
-      ToastAndroid.show("Invalid Credentials",ToastAndroid.LONG)
+    setLoading(true);
+    setError('');
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      console.log('User signed in:', user.uid);
+      router.replace('/mytrip');
+    } catch (error) {
+      console.error('Sign in error:', error.code, error.message);
+      
+      let errorMessage = 'Failed to sign in. Please try again.';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = 'Invalid email or password';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Please enter a valid email address';
+      }
+      
+      setError(errorMessage);
+      if (Platform.OS === 'android') {
+        Alert.alert('Sign In Failed', errorMessage);
+      }
+    } finally {
+      setLoading(false);
     }
-  });
-
-  }
+  };
 
   return (
-    <LinearGradient
-      colors={['#4c669f', '#3b5998', '#192f6a']}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.content}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
+      <SafeAreaView style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back-outline" size={30} color="white" />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-
+      </SafeAreaView>
+      
+      <View style={styles.content}>
         <View style={styles.headerContainer}>
-          <Text style={styles.headerText}>Let's Sign You In</Text>
-          <Text style={styles.subHeaderText}>Welcome Back</Text>
-          <Text style={styles.subHeaderText}>You've been missed</Text>
+          <Text style={styles.headerText}>Welcome Back</Text>
+          <Text style={styles.subHeaderText}>Sign in to continue your journey</Text>
         </View>
-
+        
         <View style={styles.formContainer}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
               style={styles.input}
-              placeholder='Enter Email'
-              placeholderTextColor="#a0a0a0"
-              onChangeText={(val) =>setEmail(val)}
+              placeholder="Enter your email"
+              placeholderTextColor="#A0AEC0"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
             />
           </View>
 
@@ -80,44 +95,61 @@ export default function SignIn() {
             <TextInput
               secureTextEntry={true}
               style={styles.input}
-              placeholder='Enter Password'
-              placeholderTextColor="#a0a0a0"
-              onChangeText={(val) =>setPassword(val)}
+              placeholder="Enter your password"
+              placeholderTextColor="#A0AEC0"
+              value={password}
+              onChangeText={setPassword}
             />
           </View>
 
-          <TouchableOpacity style={styles.signInButton} onPress={onSignIn}>
-            <Text style={styles.signInButtonText}>Sign In</Text>
+          <TouchableOpacity 
+            style={[styles.signInButton, loading && styles.buttonDisabled]}
+            onPress={onSignIn}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.signInButtonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => router.replace('auth/sign-up')}
-            style={styles.createAccountButton}
-          >
-            <Text style={styles.createAccountButtonText}>Create Account</Text>
-          </TouchableOpacity>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account?</Text>
+            <TouchableOpacity onPress={() => router.replace('auth/sign-up')}>
+              <Text style={styles.footerLink}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#4C669F',
   },
-  content: {
-    padding: 25,
-    flex: 1,
-    justifyContent: 'center',
+  header: {
+    paddingTop: StatusBar.currentHeight || 44,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
   },
   headerContainer: {
-    marginBottom: 40,
+    marginBottom: 30,
   },
   headerText: {
     fontFamily: 'outfit-bold',
@@ -127,34 +159,56 @@ const styles = StyleSheet.create({
   },
   subHeaderText: {
     fontFamily: 'outfit',
-    color: '#e0e0e0',
+    color: '#E2E8F0',
     fontSize: 18,
   },
   formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  errorText: {
+    color: '#E53E3E',
+    marginBottom: 16,
+    textAlign: 'center',
+    fontSize: 14,
   },
   inputContainer: {
     marginBottom: 20,
   },
   inputLabel: {
     fontFamily: 'outfit',
-    color: 'white',
-    marginBottom: 5,
+    color: '#4A5568',
+    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '500',
   },
   input: {
     padding: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
+    backgroundColor: '#F7FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
     fontFamily: 'outfit',
-    color: 'white',
+    color: '#2D3748',
+    fontSize: 16,
   },
   signInButton: {
-    backgroundColor: '#ff6347',
-    borderRadius: 25,
+    backgroundColor: '#FF4B4B',
+    borderRadius: 8,
     padding: 15,
-    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    height: 50,
+  },
+  buttonDisabled: {
+    backgroundColor: '#FEB2B2',
   },
   signInButtonText: {
     color: 'white',
@@ -162,17 +216,21 @@ const styles = StyleSheet.create({
     fontFamily: 'outfit-bold',
     fontSize: 16,
   },
-  createAccountButton: {
-    borderColor: 'white',
-    borderWidth: 1,
-    borderRadius: 25,
-    padding: 15,
-    marginTop: 15,
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
   },
-  createAccountButtonText: {
-    color: 'white',
-    textAlign: 'center',
+  footerText: {
     fontFamily: 'outfit',
-    fontSize: 16,
+    color: '#718096',
+    fontSize: 14,
+    marginRight: 4,
+  },
+  footerLink: {
+    fontFamily: 'outfit-bold',
+    color: '#4C669F',
+    fontSize: 14,
   },
 });

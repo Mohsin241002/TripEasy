@@ -1,10 +1,9 @@
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ToastAndroid, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator, Platform } from 'react-native';
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { createUserWithEmailAndPassword,getAuth } from 'firebase/auth';
-import { auth } from '../../../configs/firebaseConfig'; // Correct casing here
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../../../configs/firebaseConfig';
 import WebSignUp from '../../components/web/SignUp';
 
 export default function SignUp() {
@@ -14,169 +13,260 @@ export default function SignUp() {
   }
 
   const router = useRouter();
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const [email,setEmail] = useState();
-  const [password,setPassword] = useState();
-  const [fullName,setFullName] = useState();
-
-  const onCreateAccount=()=>{
-    if(!email && !password&& !fullName){
-      ToastAndroid.show("Please enter all details",ToastAndroid.BOTTOM);
+  const onCreateAccount = async () => {
+    // Form validation
+    if (!fullName.trim()) {
+      setError('Please enter your full name');
       return;
     }
-    createUserWithEmailAndPassword(auth, email, password)
-  .then((userCredential) => {
-    // Signed up 
-    const user = userCredential.user;
-    console.log(user);
-    router.replace('/mytrip')
     
-    // ...
-  })
-  .catch((error) => {
-    const errorCode = error.code;
-    const errorMessage = error.message;
-    console.log(errorMessage,errorCode);
-    // ..
-  });
+    if (!email.trim()) {
+      setError('Please enter your email');
+      return;
+    }
+    
+    if (!password) {
+      setError('Please enter a password');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
 
-  }
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create user account
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Update user profile with full name
+      await updateProfile(user, {
+        displayName: fullName
+      });
+      
+      console.log('User account created:', user.uid);
+      router.replace('/mytrip');
+    } catch (error) {
+      console.error('Sign up error:', error.code, error.message);
+      
+      let errorMessage = 'Failed to create account. Please try again.';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already in use';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Please enter a valid email address';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak';
+      }
+      
+      setError(errorMessage);
+      if (Platform.OS === 'android') {
+        Alert.alert('Sign Up Failed', errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <LinearGradient
-      colors={['#4c669f', '#3b5998', '#192f6a']}
-      style={styles.container}
-    >
-      <StatusBar translucent backgroundColor="transparent" />
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.push('/auth/sign-in')}>
-          <Ionicons name="arrow-back-outline" size={30} color="white" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
+      <ScrollView contentContainerStyle={styles.content}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.push('/auth/sign-in')}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         
-        <Text style={styles.title}>Create New Account</Text>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerText}>Create Account</Text>
+          <Text style={styles.subHeaderText}>Sign up to start planning your trips</Text>
+        </View>
         
         <View style={styles.formContainer}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={styles.inputLabel}>Full Name</Text>
             <TextInput 
               style={styles.input} 
-              placeholder='Enter Full Name' 
-              placeholderTextColor="#a0a0a0"
-              onChangeText={(val)=>console.log(val)}
+              placeholder="Enter your full name" 
+              placeholderTextColor="#A0AEC0"
+              value={fullName}
+              onChangeText={setFullName}
             />
           </View>
           
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.inputLabel}>Email</Text>
             <TextInput 
               style={styles.input} 
-              placeholder='Enter Email' 
-              placeholderTextColor="#a0a0a0"
+              placeholder="Enter your email" 
+              placeholderTextColor="#A0AEC0"
               keyboardType="email-address"
-              onChangeText={(val)=>setEmail(val)}
-
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
             />
           </View>
           
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.inputLabel}>Password</Text>
             <TextInput 
               secureTextEntry={true} 
               style={styles.input} 
-              placeholder='Enter Password' 
-              placeholderTextColor="#a0a0a0"
-              onChangeText={(val)=>setPassword(val)}
-
+              placeholder="Create a password" 
+              placeholderTextColor="#A0AEC0"
+              value={password}
+              onChangeText={setPassword}
             />
+            <Text style={styles.passwordHint}>Must be at least 6 characters</Text>
           </View>
           
           <TouchableOpacity 
-            style={styles.createAccountButton} 
+            style={[styles.createAccountButton, loading && styles.buttonDisabled]} 
             onPress={onCreateAccount}
+            disabled={loading}
           >
-            <Text style={styles.createAccountButtonText}>Create Account</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.createAccountButtonText}>Create Account</Text>
+            )}
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.signInButton} 
-            onPress={() => router.replace('auth/sign-in')}
-          >
-            <Text style={styles.signInButtonText}>Sign In</Text>
-          </TouchableOpacity>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account?</Text>
+            <TouchableOpacity onPress={() => router.replace('auth/sign-in')}>
+              <Text style={styles.footerLink}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#4C669F',
   },
-  scrollViewContent: {
+  content: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 25,
+    paddingHorizontal: 24,
     paddingTop: StatusBar.currentHeight + 20,
+    paddingBottom: 40,
   },
   backButton: {
-    position: 'absolute',
-    top: StatusBar.currentHeight + 20,
-    left: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
-  title: {
-    fontFamily: 'outfit-bold',
-    fontSize: 28,
-    textAlign: 'center',
+  headerContainer: {
     marginBottom: 30,
+  },
+  headerText: {
+    fontFamily: 'outfit-bold',
+    fontSize: 32,
     color: 'white',
+    marginBottom: 10,
+  },
+  subHeaderText: {
+    fontFamily: 'outfit',
+    color: '#E2E8F0',
+    fontSize: 18,
   },
   formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  errorText: {
+    color: '#E53E3E',
+    marginBottom: 16,
+    textAlign: 'center',
+    fontSize: 14,
   },
   inputContainer: {
     marginBottom: 20,
   },
-  label: {
+  inputLabel: {
     fontFamily: 'outfit',
-    fontSize: 16,
-    color: 'white',
-    marginBottom: 5,
+    color: '#4A5568',
+    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '500',
   },
   input: {
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 15,
+    backgroundColor: '#F7FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
     fontFamily: 'outfit',
+    color: '#2D3748',
     fontSize: 16,
-    color: 'white',
+  },
+  passwordHint: {
+    fontFamily: 'outfit',
+    color: '#718096',
+    fontSize: 12,
+    marginTop: 4,
   },
   createAccountButton: {
-    padding: 16,
-    backgroundColor: '#ff6347',
-    borderRadius: 25,
-    marginTop: 30,
-    elevation: 5,
+    backgroundColor: '#FF4B4B',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    height: 50,
+  },
+  buttonDisabled: {
+    backgroundColor: '#FEB2B2',
   },
   createAccountButtonText: {
     color: 'white',
     textAlign: 'center',
     fontFamily: 'outfit-bold',
-    fontSize: 18,
+    fontSize: 16,
   },
-  signInButton: {
-    padding: 16,
-    backgroundColor: 'transparent',
-    borderRadius: 25,
-    marginTop: 15,
-    borderWidth: 1,
-    borderColor: 'white',
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
   },
-  signInButtonText: {
-    textAlign: 'center',
+  footerText: {
+    fontFamily: 'outfit',
+    color: '#718096',
+    fontSize: 14,
+    marginRight: 4,
+  },
+  footerLink: {
     fontFamily: 'outfit-bold',
-    fontSize: 18,
-    color: 'white',
+    color: '#4C669F',
+    fontSize: 14,
   },
 });

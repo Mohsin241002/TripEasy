@@ -27,11 +27,11 @@ const model = genAI.getGenerativeModel({
 });
 
 const generationConfig = {
-  temperature: 1,
+  temperature: 0.7, // Lower temperature for more reliable outputs
   topP: 0.95,
   topK: 64,
   maxOutputTokens: 8192,
-  responseMimeType: "application/json",
+  responseMimeType: "application/json", // Force JSON response
 };
 
 // Export a pre-created chat session with history, exactly like in AiModal.js
@@ -188,27 +188,112 @@ const saveLocationToFirebase = async (locationName, countryName, data) => {
  * @returns {Promise<Object>} - Location details from chat session
  */
 export const getLocationDetails = async (locationName, countryName) => {
+  console.log(`STARTING NEW API CALL for ${locationName}, ${countryName}`);
+  
   try {
-    const result = await locationDetailsChat.sendMessage(`Generate detailed information about ${locationName}, ${countryName} as a travel destination. Include a brief introduction, famous local dishes with descriptions, top places to visit with descriptions and visit durations, and estimated costs for a 7-day trip including accommodation options, food, transportation, and activities in JSON format`);
+    // Create a NEW chat instance each time to avoid history contamination
+    const chatSession = model.startChat({
+      generationConfig: {
+        ...generationConfig,
+        temperature: 1.0, // Increase temperature for more varied responses
+      },
+    });
     
+    // Create an explicit prompt for better results
+    const prompt = `Generate detailed and accurate travel information about ${locationName}, ${countryName || ''} as a tourist destination.
+
+Your response MUST be in this EXACT JSON format:
+{
+  "introduction": "Comprehensive overview of ${locationName} with interesting facts",
+  "famous_dishes": [
+    {"name": "Actual local dish name", "description": "Detailed description of the dish"}
+  ],
+  "places_to_visit": [
+    {"name": "Real attraction name", "description": "Detailed description with historical context", "visit_duration": "Estimated time needed"}
+  ],
+  "cost_estimates": {
+    "accommodation": {
+      "budget": "Actual price range for budget hotels/hostels",
+      "mid_range": "Actual price range for mid-range hotels",
+      "luxury": "Actual price range for luxury hotels"
+    },
+    "food_per_day": "Realistic food cost estimate per day",
+    "local_transportation": "Realistic transportation cost estimate",
+    "sightseeing_activities": "Realistic activities cost estimate",
+    "total_estimate": "Total estimated budget for a 7-day trip"
+  }
+}
+
+Important instructions:
+1. Provide ONLY real, accurate information about ${locationName}
+2. Include at least 4-5 famous dishes specific to the region
+3. Include at least 5-6 actual tourist attractions with accurate visit durations
+4. Provide realistic cost estimates in the local currency or USD
+5. Return ONLY the JSON with NO explanation text or markdown formatting
+
+Your response should be complete, detailed, and specific to ${locationName}, ${countryName || ''}.`;
+
+    console.log("Sending prompt to Gemini API...");
+    console.log(`Prompt length: ${prompt.length} characters`);
+    
+    // Make the API call
+    const result = await chatSession.sendMessage(prompt);
     const responseText = result.response.text();
     
-    // Try to parse as JSON directly first
+    console.log(`API response received! Length: ${responseText.length} characters`);
+    console.log(`Response preview: ${responseText.substring(0, 150)}...`);
+    
+    // Try to parse as JSON
+    let parsedData;
     try {
-      return JSON.parse(responseText);
-    } catch (err) {
-      // If direct parsing fails, try to extract JSON from the response
+      // First try direct JSON parsing
+      parsedData = JSON.parse(responseText);
+      console.log("Successfully parsed response as JSON directly");
+    } catch (parseError) {
+      console.log("Direct JSON parsing failed, trying to extract JSON from text...");
+      
+      // Look for JSON in the response (handling potential markdown code blocks)
       const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || 
                         responseText.match(/(\{[\s\S]*\})/);
       
       if (jsonMatch && jsonMatch[1]) {
-        return JSON.parse(jsonMatch[1].trim());
+        try {
+          parsedData = JSON.parse(jsonMatch[1].trim());
+          console.log("Successfully extracted and parsed JSON from response text");
+        } catch (e) {
+          console.error("Failed to parse extracted JSON:", e);
+          throw new Error("Could not parse the extracted JSON from the API response");
+        }
       } else {
-        throw new Error("Failed to extract JSON from response");
+        console.error("No JSON content found in the API response");
+        throw new Error("The API response did not contain valid JSON data");
       }
     }
+    
+    // Validate the parsed data structure
+    if (!parsedData || 
+        !parsedData.introduction || 
+        !Array.isArray(parsedData.famous_dishes) || 
+        !Array.isArray(parsedData.places_to_visit) ||
+        !parsedData.cost_estimates) {
+      console.error("API returned incomplete data structure:", parsedData);
+      throw new Error("The API response was missing required fields");
+    }
+    
+    console.log("DATA VALIDATION SUCCESS - Returning complete location details");
+    
+    // Save to Firebase for future reference
+    try {
+      await saveLocationToFirebase(locationName, countryName, parsedData);
+      console.log("Successfully saved data to Firebase");
+    } catch (saveError) {
+      // Just log the error but continue returning the data
+      console.error("Failed to save to Firebase:", saveError);
+    }
+    
+    return parsedData;
   } catch (error) {
-    console.error("Error getting location details:", error);
-    throw error;
+    console.error("CRITICAL ERROR in getLocationDetails:", error);
+    throw error; // Rethrow to be handled by the calling component
   }
 }; 
