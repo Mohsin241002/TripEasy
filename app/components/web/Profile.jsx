@@ -191,6 +191,7 @@ export default function WebProfile() {
                 Create custom itineraries, discover new destinations, and make your travel dreams a reality.
               </Text>
               <Text style={styles.versionText}>Version 1.0.0</Text>
+              <Text style={styles.creatorText}>Created by Mohsin Chunawala</Text>
             </View>
           </>
         )}
@@ -355,5 +356,10 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 14,
     color: '#A0AEC0',
+  },
+  creatorText: {
+    fontSize: 12,
+    color: '#A0AEC0',
+    marginTop: 4,
   },
 }); 
