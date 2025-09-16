@@ -19,3 +19,9 @@ web-build/
 expo-env.d.ts
 # @end expo-cli
 .qodo
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
