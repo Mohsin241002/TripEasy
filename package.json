@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build": "expo export --platform web",
+    "build:web": "expo export --platform web",
     "test": "jest --watchAll",
     "lint": "expo lint"
   },
@@ -42,7 +44,8 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.10.0",
-    "react-native-web": "^0.20.0"
+    "react-native-web": "^0.20.0",
+    "@expo/webpack-config": "^19.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
